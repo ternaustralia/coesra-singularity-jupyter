@@ -1,4 +1,4 @@
-FROM jupyter/scipy-notebook
+FROM jupyter/scipy-notebook:x86_64-python-3.10.11
 
 # install additional packages
 # downgrade scikit-learn for eli5 to work

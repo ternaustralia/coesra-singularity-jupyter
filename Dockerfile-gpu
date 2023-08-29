@@ -1,10 +1,34 @@
-FROM jupyter/scipy-notebook
+FROM jupyter/scipy-notebook:x86_64-python-3.10.11
 
 # install additional packages
 # downgrade scikit-learn for eli5 to work
 RUN mamba install --yes scrapy eli5 pipenv scikit-learn==1.2.0
 RUN pip3 install bob structure
 
-# The GPU packages
-RUN mamba install --yes tensorflow pytorch torchvision lightgbm Keras chainer
-RUN pip3 install pyodm cupy-cuda12x
+# Install the CUDA toolkit from NIVDIA so that mamba will install cuda version of pytorch and tensorflow
+USER root
+RUN apt update
+RUN cd /tmp
+RUN wget -nv https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin && \
+    mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
+
+RUN wget -nv https://developer.download.nvidia.com/compute/cuda/12.2.1/local_installers/cuda-repo-ubuntu2204-12-2-local_12.2.1-535.86.10-1_amd64.deb && \
+    dpkg -i ./cuda-repo-ubuntu2204-12-2-local_12.2.1-535.86.10-1_amd64.deb
+RUN cp /var/cuda-repo-ubuntu2204-12-2-local/cuda-4A4BF9B3-keyring.gpg /usr/share/keyrings/
+#RUN dpkg -i ./cuda-repo-ubuntu2204-12-2-local_12.2.1-535.86.10-1_amd64.deb
+RUN apt-get update
+RUN apt-get -y install cuda
+RUN apt-get install -y clinfo
+RUN rm  -f /tmp/cuda-repo-ubuntu2204-12-2-local_12.2.1-535.86.10-1_amd64.deb
+
+ENV LD_LIBRARY_PATH /usr/local/cuda/lib64
+
+# install mkl
+RUN mamba install --yes -c anaconda mkl
+
+# Install packages for GPU
+RUN CONDA_OVERRIDE_CUDA="11.8" mamba install --yes pytorch tensorflow
+RUN mamba install --yes Keras chainer
+RUN pip3 install lightgbm pyodm cupy-cuda12x
+
+USER ${NB_UID}
